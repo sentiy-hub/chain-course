@@ -3,33 +3,74 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@mui/material';
 import { CourseMarket__factory } from '@/abis/types';
+import { Contract, providers } from 'ethers';
+import { YiDengToken__factory } from '@/abis/types';
 import CourseMarketAbi from '@/abis/CourseMarket.json';
 
-// TODO 测试用课程数据 当做是获取到的课程列表 - 价格单位是 YD，不需要 wei 转换
-const testCourses = [
-  { id: 'y01111', name: '区块链基础入门', price: '1' },
-  { id: 'y03333', name: '智能合约开发进阶', price: '2' },
-  { id: 'x344444', name: 'DApp 全栈开发', price: '3' },
+// 定义课程数据接口
+interface Course {
+  id: string;
+  name: string;
+  price: string;
+}
+
+// 课程合约响应接口
+interface CourseResponse {
+  web2CourseId: string;
+  name: string;
+  price: bigint;
+  isActive: boolean;
+  creator: string;
+}
+
+// 课程状态接口
+interface CourseStatus {
+  exists: boolean;
+  purchased: boolean;
+}
+
+// 课程购买状态映射接口
+interface CoursePurchaseStatusMap {
+  [key: string]: CourseStatus;
+}
+
+// 课程显示状态接口
+interface CourseDisplayStatus {
+  label: string;
+  className: string;
+  buttonText: string;
+  buttonDisabled: boolean;
+}
+
+// 组件属性接口
+interface CourseCardProps {
+  provider: providers.Web3Provider | undefined;
+  yiDengContract: ReturnType<typeof YiDengToken__factory.connect> | null;
+}
+
+// 测试用课程数据
+const testCourses: Course[] = [
+  { id: '1', name: '区块链基础入门', price: '1' },
+  { id: '2', name: '智能合约开发进阶', price: '2' },
+  { id: '3', name: 'DApp 全栈开发', price: '3' },
 ];
 
-const CourseCard = ({ provider, yiDengContract }) => {
-  console.count();
-
-  const [courseContract, setCourseContract] = useState(null);
-  const [courses, setCourses] = useState([]);
-  const [coursePurchaseStatus, setCoursePurchaseStatus] = useState({});
-  const [userAddress, setUserAddress] = useState('');
-  const [isOwner, setIsOwner] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => {
+  const [courseContract, setCourseContract] = useState<Contract | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [coursePurchaseStatus, setCoursePurchaseStatus] = useState<CoursePurchaseStatusMap>({});
+  const [userAddress, setUserAddress] = useState<string>('');
+  const [isOwner, setIsOwner] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
 
   // 检查所有课程状态
-  const checkAllCoursesStatus = async () => {
+  const checkAllCoursesStatus = async (): Promise<void> => {
     if (!courseContract || !userAddress) return;
 
     try {
-      const statusPromises = testCourses.map(async course => {
+      const statusPromises = testCourses.map(async (course) => {
         try {
           const courseId = await courseContract.web2ToCourseId(course.id);
           if (courseId.toString() === '0') {
@@ -52,7 +93,7 @@ const CourseCard = ({ provider, yiDengContract }) => {
 
   // 初始化合约和检查课程状态
   useEffect(() => {
-    const initContract = async () => {
+    const initContract = async (): Promise<void> => {
       if (!provider) return;
       try {
         const signer = await provider.getSigner();
@@ -78,46 +119,40 @@ const CourseCard = ({ provider, yiDengContract }) => {
     initContract();
   }, [provider]);
 
-  // 当合约或用户地址变化时检查课程状态
   useEffect(() => {
     checkAllCoursesStatus();
   }, [courseContract, userAddress]);
 
-  const handleAddCourse = async course => {
+  // 添加课程处理函数
+  const handleAddCourse = async (course: Course): Promise<void> => {
     if (!courseContract || !isOwner) return;
     try {
       setLoading(true);
       setError('');
       setSuccess('');
 
-      // 因为代币 decimals 是 0，所以价格不需要转换
-      // 上架课程时使用普通数字，不需要转换为 wei
       const price = parseInt(course.price);
       const tx = await courseContract.addCourse(course.id, course.name, price);
       await tx.wait();
 
-      // 刷新所有课程状态
       await checkAllCoursesStatus();
 
       setSuccess(`课程 ${course.name} 添加成功！`);
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || '上架课程失败');
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePurchaseCourse = async web2CourseId => {
+  // 购买课程处理函数
+  const handlePurchaseCourse = async (web2CourseId: string): Promise<void> => {
     if (!courseContract || !yiDengContract) return;
     try {
       setLoading(true);
       setError('');
       setSuccess('');
 
-      // const signer = await provider?.getSigner();
-      // const userAddress = await signer.getAddress();
-
-      // 1. 获取课程信息
       const courseId = await courseContract.web2ToCourseId(web2CourseId);
       console.log('Course ID:', courseId.toString());
 
@@ -125,66 +160,34 @@ const CourseCard = ({ provider, yiDengContract }) => {
         throw new Error('课程不存在');
       }
 
-      // 2. 获取课程详情
-      const course = await courseContract.courses(courseId);
-      console.log('Course details:', {
-        web2CourseId: course.web2CourseId,
-        name: course.name,
-        price: course.price.toString(),
-        isActive: course.isActive,
-        creator: course.creator,
-      });
+      const course: CourseResponse = await courseContract.courses(courseId);
 
       if (!course.isActive) {
         throw new Error('课程未激活');
       }
 
-      // 3. 检查用户余额
       const balance = await yiDengContract.balanceOf(userAddress);
-      console.log('User balance:', balance.toString());
-      console.log('Course price:', course.price.toString());
-
-      // 转换价格为数字进行比较
       const coursePrice = course.price.toString();
       const userBalance = balance.toString();
-      console.log('Price comparison:', {
-        coursePrice,
-        userBalance,
-      });
 
       if (parseInt(userBalance) < parseInt(coursePrice)) {
         throw new Error(`余额不足，需要 ${coursePrice} YD，当前余额 ${userBalance} YD`);
       }
 
-      // 4. 检查当前授权额度
       const allowance = await yiDengContract.allowance(userAddress, courseContract.address);
-      console.log('Current allowance:', allowance.toString());
 
-      // 5. 如果授权额度不足，进行授权
       if (allowance.lt(course.price)) {
-        console.log('Approving tokens...');
         const approveTx = await yiDengContract.approve(courseContract.address, course.price);
         await approveTx.wait();
-        console.log('Approval successful');
       }
 
-      // 6. 再次检查授权额度
-      const newAllowance = await yiDengContract.allowance(userAddress, courseContract.address);
-      console.log('New allowance after approval:', newAllowance.toString());
-
-      // 7. 执行购买
-      console.log('Executing purchase...');
       const tx = await courseContract.purchaseCourse(web2CourseId);
-      console.log('Purchase transaction sent:', tx.hash);
+      await tx.wait();
 
-      const receipt = await tx.wait();
-      console.log('Purchase successful:', receipt);
-
-      // 8. 更新状态
       await checkAllCoursesStatus();
 
       setSuccess(`课程 ${course.name} 购买成功！`);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Purchase error:', err);
       setError(err.message || '购买失败');
     } finally {
@@ -193,7 +196,7 @@ const CourseCard = ({ provider, yiDengContract }) => {
   };
 
   // 获取课程显示状态
-  const getCourseStatus = course => {
+  const getCourseStatus = (course: Course): CourseDisplayStatus => {
     const status = coursePurchaseStatus[course.id];
     if (!status?.exists) {
       return {
@@ -259,6 +262,12 @@ const CourseCard = ({ provider, yiDengContract }) => {
                         color="primary"
                         onClick={() => handlePurchaseCourse(course.id)}
                         disabled={loading || courseStatus.buttonDisabled}
+                        sx={{
+                          '&.Mui-disabled': {
+                            backgroundColor: 'rgba(25, 118, 210, 0.5)',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                          }
+                        }}
                       >
                         {courseStatus.buttonText}
                       </Button>
