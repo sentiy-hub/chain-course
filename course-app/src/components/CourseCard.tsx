@@ -1,20 +1,19 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { Button } from '@mui/material';
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import { CourseMarket__factory } from '@/abis/types';
 import { Contract, providers } from 'ethers';
 import { YiDengToken__factory } from '@/abis/types';
+import { v4 as uuidv4 } from 'uuid';
 import CourseMarketAbi from '@/abis/CourseMarket.json';
 
-// 定义课程数据接口
 interface Course {
   id: string;
   name: string;
   price: string;
 }
 
-// 课程合约响应接口
 interface CourseResponse {
   web2CourseId: string;
   name: string;
@@ -23,18 +22,15 @@ interface CourseResponse {
   creator: string;
 }
 
-// 课程状态接口
 interface CourseStatus {
   exists: boolean;
   purchased: boolean;
 }
 
-// 课程购买状态映射接口
 interface CoursePurchaseStatusMap {
   [key: string]: CourseStatus;
 }
 
-// 课程显示状态接口
 interface CourseDisplayStatus {
   label: string;
   className: string;
@@ -42,18 +38,16 @@ interface CourseDisplayStatus {
   buttonDisabled: boolean;
 }
 
-// 组件属性接口
 interface CourseCardProps {
   provider: providers.Web3Provider | undefined;
   yiDengContract: ReturnType<typeof YiDengToken__factory.connect> | null;
 }
 
-// 测试用课程数据
-const testCourses: Course[] = [
-  { id: '1', name: '区块链基础入门', price: '1' },
-  { id: '2', name: '智能合约开发进阶', price: '2' },
-  { id: '3', name: 'DApp 全栈开发', price: '3' },
-];
+interface NewCourse {
+  id: string;
+  name: string;
+  price: string;
+}
 
 const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => {
   const [courseContract, setCourseContract] = useState<Contract | null>(null);
@@ -64,13 +58,49 @@ const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
+  
+  // 新增状态
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newCourse, setNewCourse] = useState<NewCourse>({
+    id: '',
+    name: '',
+    price: ''
+  });
+
+  // 从合约获取课程列表
+  const fetchCourses = async () => {
+    if (!courseContract) return;
+    
+    try {
+      const courseCount = await courseContract.courseCount();
+      const coursesArray: Course[] = [];
+      
+      for (let i = 1; i <= courseCount.toNumber(); i++) {
+        const course = await courseContract.courses(i);
+        if (course.isActive) {
+          coursesArray.push({
+            id: course.web2CourseId,
+            name: course.name,
+            price: course.price.toString()
+          });
+        }
+      }
+      console.log('Courses:', coursesArray);
+      
+      
+      setCourses(coursesArray);
+    } catch (err) {
+      console.error('获取课程列表失败:', err);
+      setError('获取课程列表失败');
+    }
+  };
 
   // 检查所有课程状态
   const checkAllCoursesStatus = async (): Promise<void> => {
     if (!courseContract || !userAddress) return;
 
     try {
-      const statusPromises = testCourses.map(async (course) => {
+      const statusPromises = courses.map(async (course) => {
         try {
           const courseId = await courseContract.web2ToCourseId(course.id);
           if (courseId.toString() === '0') {
@@ -91,7 +121,13 @@ const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => 
     }
   };
 
-  // 初始化合约和检查课程状态
+  useEffect(() => {
+    if (courseContract) {
+      // 获取课程列表
+      fetchCourses();
+    }
+  }, [courseContract]);
+
   useEffect(() => {
     const initContract = async (): Promise<void> => {
       if (!provider) return;
@@ -104,12 +140,11 @@ const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => 
         const contract = CourseMarket__factory.connect(contractAddress, signer);
         setCourseContract(contract);
 
-        // 检查是否是合约拥有者
         const ownerAddress = await contract.owner();
         setIsOwner(ownerAddress.toLowerCase() === address.toLowerCase());
 
-        // 设置测试课程
-        setCourses(testCourses);
+        // 初始化后获取课程列表
+        // await fetchCourses();
       } catch (err) {
         console.error('课程合约初始化失败:', err);
         setError('课程合约初始化失败');
@@ -121,23 +156,25 @@ const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => 
 
   useEffect(() => {
     checkAllCoursesStatus();
-  }, [courseContract, userAddress]);
+  }, [courseContract, userAddress, courses]);
 
-  // 添加课程处理函数
-  const handleAddCourse = async (course: Course): Promise<void> => {
+  const handleAddCourse = async (): Promise<void> => {
     if (!courseContract || !isOwner) return;
     try {
       setLoading(true);
       setError('');
       setSuccess('');
-
-      const price = parseInt(course.price);
-      const tx = await courseContract.addCourse(course.id, course.name, price);
+      
+      const price = parseInt(newCourse.price);
+      const tx = await courseContract.addCourse(uuidv4(), newCourse.name, price);
       await tx.wait();
 
+      await fetchCourses();
       await checkAllCoursesStatus();
 
-      setSuccess(`课程 ${course.name} 添加成功！`);
+      setSuccess(`课程 ${newCourse.name} 添加成功！`);
+      setIsDialogOpen(false);
+      setNewCourse({ id: '', name: '', price: '' });
     } catch (err: any) {
       setError(err.message || '上架课程失败');
     } finally {
@@ -145,7 +182,6 @@ const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => 
     }
   };
 
-  // 购买课程处理函数
   const handlePurchaseCourse = async (web2CourseId: string): Promise<void> => {
     if (!courseContract || !yiDengContract) return;
     try {
@@ -195,7 +231,6 @@ const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => 
     }
   };
 
-  // 获取课程显示状态
   const getCourseStatus = (course: Course): CourseDisplayStatus => {
     const status = coursePurchaseStatus[course.id];
     if (!status?.exists) {
@@ -227,7 +262,18 @@ const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => 
       <div className="bg-gradient-to-b from-blue-800 to-blue-900 p-1 rounded-lg shadow-2xl">
         <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 p-px rounded-lg">
           <div className="bg-gradient-to-b from-slate-900 to-slate-800 rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-blue-400 mb-4 text-center">课程市场</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-blue-400">课程市场</h2>
+              {isOwner && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => setIsDialogOpen(true)}
+                >
+                  添加课程
+                </Button>
+              )}
+            </div>
 
             <div className="space-y-4">
               {courses.map(course => {
@@ -246,17 +292,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => 
                       </span>
                     </div>
                     <p className="text-blue-400">价格: {course.price} YD</p>
-                    <div className="mt-2 space-x-2">
-                      {isOwner && !coursePurchaseStatus[course.id]?.exists && (
-                        <Button
-                          variant="contained"
-                          color="warning"
-                          onClick={() => handleAddCourse(course)}
-                          disabled={loading}
-                        >
-                          上架课程
-                        </Button>
-                      )}
+                    <div className="mt-2">
                       <Button
                         variant="contained"
                         color="primary"
@@ -290,6 +326,34 @@ const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => 
           </div>
         </div>
       </div>
+
+      {/* 添加课程对话框 */}
+      <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)}>
+        <DialogTitle>添加新课程</DialogTitle>
+        <DialogContent>
+          <div className="space-y-4 pt-4">
+            <TextField
+              fullWidth
+              label="课程名称"
+              value={newCourse.name}
+              onChange={(e) => setNewCourse(prev => ({ ...prev, name: e.target.value }))}
+            />
+            <TextField
+              fullWidth
+              label="课程价格(YD)"
+              type="number"
+              value={newCourse.price}
+              onChange={(e) => setNewCourse(prev => ({ ...prev, price: e.target.value }))}
+            />
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsDialogOpen(false)}>取消</Button>
+          <Button onClick={handleAddCourse} disabled={loading}>
+            确认添加
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
