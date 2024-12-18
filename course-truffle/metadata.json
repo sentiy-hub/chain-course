@@ -1,0 +1,11 @@
+{
+  "name": "BEN NFT",
+  "description": "This is BEN NFT token",
+  "image": "ipfs://QmXW2jyXVWfgsJqDWrbAJxJJhXH2qVa5KCe1dpfoPgz23N", 
+  "attributes": [
+      {
+          "trait_type": "Base", 
+          "value": "Image"
+      }
+  ]
+}
