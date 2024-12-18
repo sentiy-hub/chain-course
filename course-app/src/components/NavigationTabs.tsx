@@ -7,6 +7,8 @@ import CourseCard from "@/components/CourseCard";
 import TokenMarket from "@/components/TokenMarket";
 import { YiDengToken__factory } from '@/abis/types';
 import YiDengAbi from '@/abis/YiDengToken.json';
+import { yiDengTokenAddress } from '@/abis/Address';
+
 
 interface Tab {
   id: string;
@@ -33,8 +35,8 @@ const NavigationTabs = () => {
       if (!provider) return;
       try {
         const signer = await provider.getSigner();
-        const contractAddress = YiDengAbi.networks['5777'].address;
-        const newContract = YiDengToken__factory.connect(contractAddress, signer);
+        // const contractAddress = YiDengAbi.networks['5777'].address;
+        const newContract = YiDengToken__factory.connect(yiDengTokenAddress, signer);
         setContract(newContract);
       } catch (err) {
         console.error('合约初始化失败:', err);

@@ -231,7 +231,7 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
       <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 p-px rounded-lg">
         <div className="bg-gradient-to-b from-slate-900 to-slate-800 rounded-lg p-6">
           {/* 初始化状态 */}
-          {isOwner && !isInitialized && (
+          {/* {isOwner && !isInitialized && (
             <div className="mb-6">
               <div className="text-yellow-400 mb-2">⚠️ 合约尚未初始化</div>
               <Button
@@ -244,7 +244,7 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
                 {isPending ? '初始化中...' : '初始化合约'}
               </Button>
             </div>
-          )}
+          )} */}
 
           {/* 代币信息 */}
           <div className="mb-6 text-center">

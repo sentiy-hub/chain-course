@@ -7,6 +7,7 @@ import { Contract, providers } from 'ethers';
 import { YiDengToken__factory } from '@/abis/types';
 import { v4 as uuidv4 } from 'uuid';
 import CourseMarketAbi from '@/abis/CourseMarket.json';
+import { courseMarketAddress } from '@/abis/Address';
 
 interface Course {
   id: string;
@@ -136,8 +137,8 @@ const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => 
         const address = await signer.getAddress();
         setUserAddress(address);
 
-        const contractAddress = CourseMarketAbi.networks['5777'].address;
-        const contract = CourseMarket__factory.connect(contractAddress, signer);
+        // const contractAddress = CourseMarketAbi.networks['5777'].address;
+        const contract = CourseMarket__factory.connect(courseMarketAddress, signer);
         setCourseContract(contract);
 
         const ownerAddress = await contract.owner();

@@ -77,6 +77,12 @@ export const MAINNET_CHAINS: ChainConfig = {
 };
 
 export const TESTNET_CHAINS: ChainConfig = {
+  11155111: {
+    urls: [getInfuraUrlFor('sepolia')].filter(Boolean),
+    name: 'Sepolia',
+    nativeCurrency: ETH,
+    blockExplorerUrls: ['https://sepolia.etherscan.io'],
+  },
   5: {
     urls: [getInfuraUrlFor('goerli')].filter(Boolean),
     name: 'Görli',
