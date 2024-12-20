@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
-import { CourseMarket__factory } from '@/abis/types';
+import { CourseMarket__factory, YiDengToken__factory, LaoyuanERC721Coin__factory } from '@/abis/types';
 import { Contract, providers } from 'ethers';
-import { YiDengToken__factory } from '@/abis/types';
 import { v4 as uuidv4 } from 'uuid';
 import CourseMarketAbi from '@/abis/CourseMarket.json';
 
@@ -41,6 +40,7 @@ interface CourseDisplayStatus {
 interface CourseCardProps {
   provider: providers.Web3Provider | undefined;
   yiDengContract: ReturnType<typeof YiDengToken__factory.connect> | null;
+  nftContract: ReturnType<typeof LaoyuanERC721Coin__factory.connect> | null; // 添加NFT合约
 }
 
 interface NewCourse {
@@ -49,7 +49,8 @@ interface NewCourse {
   price: string;
 }
 
-const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => {
+const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract, nftContract }) => {
+  const [nftMinted, setNftMinted] = useState(false);
   const [courseContract, setCourseContract] = useState<Contract | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [coursePurchaseStatus, setCoursePurchaseStatus] = useState<CoursePurchaseStatusMap>({});
@@ -220,9 +221,16 @@ const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => 
       const tx = await courseContract.purchaseCourse(web2CourseId);
       await tx.wait();
 
+      // 购买成功后铸造NFT
+      // 这里替换成你的NFT元数据URI
+      const tokenURI = "ipfs://bafkreigigck73cyyp5aloe4we75efnvybxyihlt5axapyf43dcvcw4ocgu";
+      
+      const mintTx = await nftContract.safeMint(userAddress, tokenURI);
+      await mintTx.wait();
+
       await checkAllCoursesStatus();
 
-      setSuccess(`课程 ${course.name} 购买成功！`);
+      setSuccess(`课程 ${course.name} 购买成功并已发放NFT证书！！`);
     } catch (err: any) {
       console.error('Purchase error:', err);
       setError(err.message || '购买失败');
@@ -321,6 +329,11 @@ const CourseCard: React.FC<CourseCardProps> = ({ provider, yiDengContract }) => 
             {success && (
               <div className="mt-4 bg-green-900/20 text-green-400 p-3 rounded-md border border-green-800/50">
                 {success}
+              </div>
+            )}
+            {nftMinted && (
+              <div className="mt-4 bg-green-900/20 text-green-400 p-3 rounded-md border border-green-800/50">
+                🎉 恭喜！你已获得课程NFT证书
               </div>
             )}
           </div>

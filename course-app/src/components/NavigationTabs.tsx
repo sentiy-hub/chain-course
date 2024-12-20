@@ -5,7 +5,7 @@ import MetaMaskCard from '@/components/connectorCards/MetaMaskCard';
 import { hooks } from '@/components/connections/metaMask';
 import CourseCard from "@/components/CourseCard";
 import TokenMarket from "@/components/TokenMarket";
-import { YiDengToken__factory } from '@/abis/types';
+import { YiDengToken__factory, LaoyuanERC721Coin__factory } from '@/abis/types';
 import YiDengAbi from '@/abis/YiDengToken.json';
 
 interface Tab {
@@ -26,7 +26,7 @@ const NavigationTabs = () => {
   
   const { useProvider } = hooks;
   const provider = useProvider();
-
+  const [nftContract, setNftContract] = useState(null);
   // 初始化合约
   useEffect(() => {
     const initContract = async () => {
@@ -36,6 +36,12 @@ const NavigationTabs = () => {
         const contractAddress = YiDengAbi.networks['5777'].address;
         const newContract = YiDengToken__factory.connect(contractAddress, signer);
         setContract(newContract);
+
+        const nftContractInstance = LaoyuanERC721Coin__factory.connect(
+          '0xa2078ac2B1f742A78DC63D8A0286C94BEB17c152',
+          signer
+        );
+        setNftContract(nftContractInstance);
       } catch (err) {
         console.error('合约初始化失败:', err);
       }
@@ -75,7 +81,7 @@ const NavigationTabs = () => {
         }
         {activeTab === 'course' && 
           <div className="text-gray-900">
-            <CourseCard provider={provider} yiDengContract={contract} />
+            <CourseCard provider={provider} yiDengContract={contract} nftContract={nftContract}/>
           </div>
         }
       </div>

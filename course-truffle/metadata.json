@@ -1,11 +1,15 @@
 {
-  "name": "BEN NFT",
-  "description": "This is BEN NFT token",
-  "image": "ipfs://QmXW2jyXVWfgsJqDWrbAJxJJhXH2qVa5KCe1dpfoPgz23N", 
+  "name": "课程证书",
+  "description": "这是课程学习证明",
+  "image": "ipfs://bafybeihfeavym55qhsc4begzcs7qxr22wvlk42dqhwshicem7ymgz4vkbm",
   "attributes": [
-      {
-          "trait_type": "Base", 
-          "value": "Image"
-      }
+    {
+      "trait_type": "课程类型",
+      "value": "Web3"
+    },
+    {
+      "trait_type": "完成时间", 
+      "value": "2024"
+    }
   ]
 }
