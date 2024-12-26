@@ -14,17 +14,22 @@
     "@ethersproject/bignumber": "^5.7.0",
     "@ethersproject/units": "^5.7.0",
     "@mui/material": "^6.2.0",
+    "@radix-ui/react-toast": "^1.2.4",
+    "@tanstack/react-query": "^5.62.10",
     "@types/uuid": "^10.0.0",
     "@web3-react/core": "^8.2.3",
     "@web3-react/metamask": "^8.2.4",
     "@web3-react/types": "^8.2.3",
+    "connectkit": "^1.8.2",
     "ethers": "5.7.2",
     "eventemitter3": "^5.0.1",
     "lucide-react": "^0.468.0",
     "next": "15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "uuid": "^11.0.3"
+    "uuid": "^11.0.3",
+    "viem": "^2.21.57",
+    "wagmi": "^2.14.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

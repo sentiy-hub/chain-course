@@ -1,5 +1,8 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+const TOKEN_CONTRACT = '0x901a683A2B931f97d552513E33333039E8eA546e'; // YD Token 合约地址
+  const MARKET_CONTRACT = '0x897d53a236d64b32576209bA7fa5e057DEEf6D0c'; // Market 合约地址
+
 ## Getting Started
 
 First, run the development server:
