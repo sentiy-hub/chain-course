@@ -4,6 +4,7 @@ import { Wallet, ArrowRightLeft, ShoppingCart, DollarSign } from 'lucide-react';
 import { useAccount, useBalance } from 'wagmi';
 import { parseEther, formatUnits, formatEther } from 'viem';
 import { useReadContract, useWriteContract, useWatchContractEvent } from 'wagmi';
+import { yiDengTokenAddress } from '@/abis/Address';
 
 const YDMarket = () => {
   const [activeTab, setActiveTab] = useState('buy');
@@ -11,15 +12,10 @@ const YDMarket = () => {
   const [recipient, setRecipient] = useState('');
   const { address } = useAccount();
 
-  // 获取ETH余额
   const { data: ethBalance } = useBalance({
     address: address,
   });
 
-  // 代币合约地址
-  const TOKEN_CONTRACT = '0x901a683A2B931f97d552513E33333039E8eA546e';
-
-  // 合约 ABI
   const tokenAbi = [{
     name: 'balanceOf',
     type: 'function',
@@ -49,9 +45,8 @@ const YDMarket = () => {
     outputs: [],
   }] as const;
 
-  // 读取YD余额
   const { data: ydBalance, refetch: refetchYDBalance } = useReadContract({
-    address: TOKEN_CONTRACT,
+    address: yiDengTokenAddress,
     abi: tokenAbi,
     functionName: 'balanceOf',
     args: [address as `0x${string}`],
@@ -60,12 +55,10 @@ const YDMarket = () => {
     },
   });
 
-  // 合约写入操作
   const { writeContract, isPending, isSuccess } = useWriteContract();
 
-  // 监听Transfer事件
   useWatchContractEvent({
-    address: TOKEN_CONTRACT,
+    address: yiDengTokenAddress,
     abi: tokenAbi,
     eventName: 'Transfer',
     onLogs(logs) {
@@ -74,7 +67,6 @@ const YDMarket = () => {
     },
   });
 
-  // 处理交易提交
   const handleSubmit = async (type: 'buy' | 'sell' | 'transfer') => {
     if (!address) {
       alert('请先连接钱包');
@@ -86,7 +78,7 @@ const YDMarket = () => {
         case 'buy':
           const parsedAmount = parseEther(amount);
           await writeContract({
-            address: TOKEN_CONTRACT,
+            address: yiDengTokenAddress,
             abi: tokenAbi,
             functionName: 'buyWithETH',
             value: parsedAmount,
@@ -94,9 +86,9 @@ const YDMarket = () => {
           break;
           
         case 'sell':
-          const sellAmount = BigInt(amount);
+          const sellAmount = parseEther(amount);
           await writeContract({
-            address: TOKEN_CONTRACT,
+            address: yiDengTokenAddress,
             abi: tokenAbi,
             functionName: 'sellTokens',
             args: [sellAmount],
@@ -108,9 +100,9 @@ const YDMarket = () => {
             alert('请输入接收方地址');
             return;
           }
-          const transferAmount = BigInt(amount);
+          const transferAmount = parseEther(amount);
           await writeContract({
-            address: TOKEN_CONTRACT,
+            address: yiDengTokenAddress,
             abi: tokenAbi,
             functionName: 'transfer',
             args: [recipient as `0x${string}`, transferAmount],
@@ -123,7 +115,6 @@ const YDMarket = () => {
     }
   };
 
-  // 监听交易状态
   useEffect(() => {
     if (isSuccess) {
       alert('交易成功！');
@@ -131,7 +122,6 @@ const YDMarket = () => {
       if (activeTab === 'transfer') {
         setRecipient('');
       }
-      // 刷新余额
       refetchYDBalance();
     }
   }, [isSuccess, activeTab]);
@@ -188,10 +178,10 @@ const YDMarket = () => {
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <div className="text-sm text-gray-400">
-                      ETH余额: {ethBalance ? Number(formatEther(ethBalance.value)).toFixed(2) : '0'} ETH
+                      ETH余额: {ethBalance ? Number(formatEther(ethBalance.value)).toFixed(4) : '0'} ETH
                     </div>
                     <div className="text-sm text-gray-400">
-                      YD余额: {ydBalance ? formatUnits(ydBalance, 0) : '0'} YD
+                      YD余额: {ydBalance ? formatUnits(ydBalance, 18) : '0'} YD
                     </div>
                   </div>
                 </div>
@@ -225,10 +215,10 @@ const YDMarket = () => {
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <div className="text-sm text-gray-400">
-                      ETH余额: {ethBalance ? Number(formatEther(ethBalance.value)).toFixed(2) : '0'} ETH
+                      ETH余额: {ethBalance ? Number(formatEther(ethBalance.value)).toFixed(4) : '0'} ETH
                     </div>
                     <div className="text-sm text-gray-400">
-                      可用YD: {ydBalance ? formatUnits(ydBalance, 0) : '0'} YD
+                      可用YD: {ydBalance ? formatUnits(ydBalance, 18) : '0'} YD
                     </div>
                   </div>
                 </div>
@@ -261,7 +251,7 @@ const YDMarket = () => {
                     <span className="text-white">转账YD币</span>
                   </div>
                   <div className="text-sm text-gray-400">
-                    可用: {ydBalance ? formatUnits(ydBalance, 0) : '0'} YD
+                    可用: {ydBalance ? formatUnits(ydBalance, 18) : '0'} YD
                   </div>
                 </div>
                 <input

@@ -27,7 +27,6 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
 
-  // 检查合约初始化状态和所有者权限
   useEffect(() => {
     const checkInitialization = async () => {
       if (!contract || !provider) return;
@@ -36,11 +35,9 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
         const signer = await provider.getSigner();
         const signerAddress = await signer.getAddress();
         
-        // 检查是否是合约拥有者
         const ownerAddress = await contract.owner();
         setIsOwner(ownerAddress.toLowerCase() === signerAddress.toLowerCase());
 
-        // 检查初始化状态
         const initialized = await contract.initialDistributionDone();
         setIsInitialized(initialized);
       } catch (err) {
@@ -51,7 +48,6 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
     checkInitialization();
   }, [contract, provider]);
 
-  // 获取代币信息
   useEffect(() => {
     const fetchTokenInfo = async () => {
       if (!contract || !provider) return;
@@ -84,7 +80,6 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
     fetchTokenInfo();
   }, [contract, provider]);
 
-  // 初始代币分配处理
   const handleInitialDistribution = async () => {
     if (!contract) return;
     try {
@@ -127,7 +122,6 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
     }
   };
 
-  // 购买代币处理
   const handleBuy = async (e: FormEvent) => {
     e.preventDefault();
     if (!contract || !buyAmount) return;
@@ -166,7 +160,6 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
     }
   };
 
-  // 转账处理
   const handleTransfer = async (e: FormEvent) => {
     e.preventDefault();
     if (!contract || !transferAmount || !transferAddress) return;
@@ -185,7 +178,7 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
         throw new Error('余额不足');
       }
 
-      const tx = await contract.transfer(transferAddress, transferAmount);
+      const tx = await contract.transfer(transferAddress, ethers.utils.parseUnits(transferAmount, 18));
       await tx.wait();
 
       const newBalance = await contract.balanceOf(await contract.signer.getAddress());
@@ -201,7 +194,6 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
     }
   };
 
-  // 卖出代币处理
   const handleSell = async (e: FormEvent) => {
     e.preventDefault();
     if (!contract || !sellAmount) return;
@@ -211,7 +203,7 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
       setError('');
       setSuccess('');
 
-      const tx = await contract.sellTokens(sellAmount);
+      const tx = await contract.sellTokens(ethers.utils.parseUnits(sellAmount, 18));
       await tx.wait();
 
       const newBalance = await contract.balanceOf(await contract.signer.getAddress());
@@ -230,38 +222,20 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
     <div className="bg-gradient-to-b from-blue-800 to-blue-900 p-1 rounded-lg shadow-2xl">
       <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 p-px rounded-lg">
         <div className="bg-gradient-to-b from-slate-900 to-slate-800 rounded-lg p-6">
-          {/* 初始化状态 */}
-          {/* {isOwner && !isInitialized && (
-            <div className="mb-6">
-              <div className="text-yellow-400 mb-2">⚠️ 合约尚未初始化</div>
-              <Button
-                variant="contained"
-                color="warning"
-                fullWidth
-                onClick={handleInitialDistribution}
-                disabled={isPending}
-              >
-                {isPending ? '初始化中...' : '初始化合约'}
-              </Button>
-            </div>
-          )} */}
-
-          {/* 代币信息 */}
           <div className="mb-6 text-center">
             <h2 className="text-2xl font-bold text-blue-400 mb-4">
               {tokenInfo.name} ({tokenInfo.symbol})
             </h2>
             <div className="space-y-2 text-blue-300">
-              <p>你的余额: {balance} {tokenInfo.symbol}</p>
-              <p>总供应量: {tokenInfo.totalSupply} {tokenInfo.symbol}</p>
-              <p>剩余可铸造: {tokenInfo.remainingSupply} {tokenInfo.symbol}</p>
+              <p>你的余额: {ethers.utils.formatUnits(balance, 18)} {tokenInfo.symbol}</p>
+              <p>总供应量: {ethers.utils.formatUnits(tokenInfo.totalSupply, 18)} {tokenInfo.symbol}</p>
+              <p>剩余可铸造: {ethers.utils.formatUnits(tokenInfo.remainingSupply, 18)} {tokenInfo.symbol}</p>
               <p>合约状态: {isInitialized ? '已初始化' : '未初始化'}</p>
             </div>
           </div>
 
           {isInitialized && (
             <>
-              {/* 购买代币表单 */}
               <form onSubmit={handleBuy} className="mb-6">
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-blue-400">
@@ -291,7 +265,6 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
                 </div>
               </form>
 
-              {/* 卖出代币表单 */}
               <form onSubmit={handleSell} className="mb-6">
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-blue-400">卖出代币</label>
@@ -318,7 +291,6 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
                 </div>
               </form>
 
-              {/* 转账表单 */}
               <form onSubmit={handleTransfer}>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-blue-400">转账代币</label>
@@ -354,7 +326,6 @@ const TokenMarket: React.FC<TokenMarketProps> = ({ provider, contract }) => {
             </>
           )}
 
-          {/* 错误和成功消息 */}
           {error && (
             <div className="mt-4 bg-red-900/20 text-red-400 p-3 rounded-md border border-red-800/50">
               {error}
