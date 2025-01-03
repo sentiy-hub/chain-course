@@ -5,7 +5,7 @@ import { useAccount, useBalance } from 'wagmi';
 import { parseEther, formatUnits, formatEther } from 'viem';
 import { useReadContract, useWriteContract, useWatchContractEvent } from 'wagmi';
 
-const YDCoinTransaction = () => {
+const YDMarket = () => {
   const [activeTab, setActiveTab] = useState('buy');
   const [amount, setAmount] = useState('');
   const [recipient, setRecipient] = useState('');
@@ -296,4 +296,4 @@ const YDCoinTransaction = () => {
   );
 };
 
-export default YDCoinTransaction;
+export default YDMarket;
